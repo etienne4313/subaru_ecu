@@ -224,7 +224,7 @@ static void btdc_0(struct event *e)
 
 	OS_ENTER_CRITICAL();
 	io_open_injector(sched->fuel_cyl); /* Now */
-	schedule_work_absolute(io_close_injector, sched->fuel_cyl, curr_time + (USEC_PER_MSEC * fuel_msec)); /* FUEL schedule */
+	schedule_work_absolute(io_close_injector, sched->fuel_cyl,  get_monotonic_time() + (USEC_PER_MSEC * fuel_msec)); /* FUEL schedule */
 	OS_EXIT_CRITICAL();
 	DEBUG("FUEL %d: %d \n",sched->fuel_cyl, e->deg);
 
