@@ -1,0 +1,11 @@
+#
+# Architecture:
+#
+PLATFORM=x86
+KDIR := $(UCOS_II)/Ports/X86/klm/gcc/
+
+#
+# CPU:
+#
+CPU=
+

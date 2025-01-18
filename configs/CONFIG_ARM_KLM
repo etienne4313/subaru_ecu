@@ -1,0 +1,11 @@
+#
+# Architecture:
+#
+PLATFORM=arm
+KDIR := $(UCOS_II)/Ports/RaspberryPI/klm/gcc/
+
+#
+# CPU:
+#
+CPU=
+
