@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include <ecu.h>
+#include <limits.h>
 
 /******************************************************************************/
 /* IO MAPPING 328 */
@@ -245,13 +246,11 @@ void io_relay_on(void)
 /******************************************************************************/
 void starter_off(void)
 {
-	FORCE_PRINT("STARTER OFF\n");
 	STARTER_OFF();
 }
 
 void starter_on(void)
 {
-	FORCE_PRINT("STARTER ON\n");
 	STARTER_ON();
 }
 
@@ -284,25 +283,32 @@ void gaz_toggle(void)
 /******************************************************************************/
 /* TRIGGER WHEEL */
 /******************************************************************************/
-static volatile unsigned long old_time = 0;
 ISR_NAKED ISR(PCINT0_vect)
 {
+	unsigned long t;
+	unsigned char up = 0, down = 0, x;
+
 	portSAVE_CONTEXT();
 
-	if(!CRANK_VAL()) /* Not interested in the Falling edge signal */
+	t = get_monotonic_time();
+
+	/* Debounce */
+	for(x=0; x<10; x++)
+		CRANK_VAL() ? up++ : down++;
+
+	if(down > up) /* Not interested in the Falling edge signal */
 		goto out;
 
 	OSIntEnter();
 	if(capture_t) /* Running behind */
 		DIE(IRQ);
 
-	curr_time = get_monotonic_time();
-	old_time = curr_time - old_time;
-	if( old_time >= 65536)
+	if( (t - curr_time) >= USHRT_MAX )
 		capture_t = 0;
 	else
-		capture_t = (unsigned short)old_time;
-	old_time = curr_time;
+		capture_t = (unsigned short)(t - curr_time);
+
+	curr_time = t;
 
 	OSSemPost(engine_event); /* Signal the engine_thread */
 

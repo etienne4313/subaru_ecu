@@ -25,6 +25,7 @@ int fuel_msec = 6;
 int record_mode = 0;
 volatile unsigned short capture_t;
 volatile unsigned long curr_time;
+int engine_state;
 #ifdef __DWELL_TEST__
 volatile unsigned long T1, DWELL_DEBUG;
 #endif
@@ -111,6 +112,7 @@ static void user_cmd(int *timing_advance, int *fuel_msec)
 		ON = 1;
 		break;
 	case 'k':
+		FORCE_PRINT("STARTER ON\n");
 		starter_on();
 		break;
 	case 'y':
@@ -138,6 +140,7 @@ static void management_thread(void *p)
 {
 	OS_CPU_SR cpu_sr;
 	int loop = 0;
+	int old_engine_state = -1;
 
 	watchdog_enable(WATCHDOG_250MS);
 	wdt_reset();
@@ -148,6 +151,27 @@ static void management_thread(void *p)
 
 		/* Run the User CLI */
 		user_cmd(&timing_advance, &fuel_msec);
+
+		/* Display transition */
+		if(engine_state != old_engine_state){
+			switch(engine_state){
+			case ENGINE_STOP:
+				FORCE_PRINT("STOP\n");
+				break;
+			case ENGINE_INIT:
+				FORCE_PRINT("INIT\n");
+				break;
+			case ENGINE_CRANK:
+				FORCE_PRINT("CRANK\n");
+				break;
+			case ENGINE_RUN:
+				FORCE_PRINT("RUN\n");
+				starter_off();
+				FORCE_PRINT("STARTER OFF\n");
+				break;
+			}
+		}
+		old_engine_state = engine_state;
 
 		if(!(loop%20)){
 			OS_ENTER_CRITICAL();
@@ -214,8 +238,6 @@ int main(void)
 	unit_test();
 #endif
 
-	FORCE_PRINT("ENTER\n");
-	
 	OSInit();
 
 	/* Low priority Management thread: GUI, gaz pump, watchdog, engine state */

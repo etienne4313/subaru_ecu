@@ -234,8 +234,7 @@ static void btdc_0(struct event *e)
 
 void engine_thread(void *p)
 {
-	int x;
-	int engine_state, old_engine_state;
+	int x, init = 0;
 	INT8U err;
 	OS_CPU_SR cpu_sr;
 	unsigned long t;
@@ -255,20 +254,20 @@ void engine_thread(void *p)
 	trigger_wheel_init();
 	
 	engine_state = ENGINE_STOP;
-	old_engine_state = ENGINE_STOP;
-	FORCE_PRINT("STOP\n");
 
 	while(1){
 		/* 
 		 * Wait for the trigger wheel notification
 		 * When the engine has started running wait on the semaphore with a timeout so that we can 
 		 * catch the scenario where the engine stops
+		 * Also check if the engine state goes out of ENGINE_RUN
 		 */
-		if(engine_state == ENGINE_RUN){
+		if(engine_state == ENGINE_RUN || init == 1){
 			OSSemPend(engine_event, 100, &err);
 			if(err == OS_ERR_TIMEOUT){
 				DIE(-1);
 			}
+			init = 1;
 		}
 		else
 			OSSemPend(engine_event, 0, &err);
@@ -281,23 +280,6 @@ void engine_thread(void *p)
 
 		/* Run the state machine for this engine type */
 		engine_state = run_trigger_wheel(t);
-
-		/* Display transition */
-		if(engine_state != old_engine_state){
-			switch(engine_state){
-			case ENGINE_INIT:
-				FORCE_PRINT("INIT\n");
-				break;
-			case ENGINE_CRANK:
-				FORCE_PRINT("CRANK\n");
-				break;
-			case ENGINE_RUN:
-				FORCE_PRINT("RUN\n");
-				starter_off();
-				break;
-			}
-		}
-		old_engine_state = engine_state;
 
 		/* Process the event callback */
 		event_callback();

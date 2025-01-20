@@ -37,6 +37,7 @@ extern int fuel_msec;
 extern int record_mode;
 extern volatile unsigned short capture_t;
 extern volatile unsigned long curr_time;
+extern int engine_state;
 #ifdef __DWELL_TEST__
 extern volatile unsigned long T1, DWELL_DEBUG;
 #endif

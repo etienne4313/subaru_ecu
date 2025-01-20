@@ -147,7 +147,6 @@ unsigned char run_trigger_wheel(unsigned short t)
 		if(t < 20000){ // TODO need proper check
 			add_vector(t);
 			if(ctr >= MIN_SAMPLE){
-				FORCE_PRINT("Signal OK\n");
 				ctr = 0;
 				state = 2;
 				break;
