@@ -16,6 +16,7 @@
 #define __ECU_H_
 
 //#define __DWELL_TEST__
+//#define __ADVANCE_TIMING_TEST__
 //#define __INJ_TEST__
 //#define __LOOP_TIMING_TEST__
 //#define __UNIT_TEST__ /* Basic IO test */
@@ -43,6 +44,9 @@ extern volatile unsigned long T1, DWELL_DEBUG;
 #endif
 #ifdef __INJ_TEST__
 extern volatile unsigned long T2, INJ_DEBUG;
+#endif
+#ifdef __ADVANCE_TIMING_TEST__
+extern volatile unsigned long T1, TIMING_DEBUG;
 #endif
 
 /******************************************************************************/

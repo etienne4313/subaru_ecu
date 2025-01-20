@@ -204,6 +204,9 @@ void io_close_coil(int coil, unsigned long t)
 #ifdef __DWELL_TEST__
 		DWELL_DEBUG = t - T1;
 #endif
+#ifdef __ADVANCE_TIMING_TEST__
+		T1 = t;
+#endif
 		break;
 	case CYL2:
 		COIL2_OFF();

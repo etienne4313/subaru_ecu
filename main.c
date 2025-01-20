@@ -32,6 +32,9 @@ volatile unsigned long T1, DWELL_DEBUG;
 #ifdef __INJ_TEST__
 volatile unsigned long T2, INJ_DEBUG;
 #endif
+#ifdef __ADVANCE_TIMING_TEST__
+volatile unsigned long T1, TIMING_DEBUG;
+#endif
 
 /******************************************************************************/
 /* RTOS */
@@ -129,6 +132,9 @@ static void user_cmd(int *timing_advance, int *fuel_msec)
 #endif
 #ifdef __INJ_TEST__
 		FORCE_PRINT("INJ %ld\n", INJ_DEBUG);
+#endif
+#ifdef __ADVANCE_TIMING_TEST__
+		FORCE_PRINT("ADV %ld\n", TIMING_DEBUG);
 #endif
 		break;
 	default:

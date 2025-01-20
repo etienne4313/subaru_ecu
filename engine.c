@@ -228,8 +228,12 @@ static void btdc_0(struct event *e)
 	OS_EXIT_CRITICAL();
 	DEBUG("FUEL %d: %d \n",sched->fuel_cyl, e->deg);
 
-	if( (e->cookie == 0) && trim_flag ) /* Trim only from CYL1 */
+	if( (e->cookie == 0) && trim_flag ){ /* Trim only from CYL1 */
 		trim_to_sequential();
+#ifdef __ADVANCE_TIMING_TEST__
+		TIMING_DEBUG = curr_time - T1;
+#endif
+	}
 }
 
 void engine_thread(void *p)
