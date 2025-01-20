@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 #include <ecu.h>
-#include <limits.h>
 
 /******************************************************************************/
 /* IO MAPPING 328 */

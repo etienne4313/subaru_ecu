@@ -52,9 +52,10 @@
  * The smallest period is when the RPM is high @6000RPM
  * 	1/(@6000 RPM / 60) / 36 == 277uSec
  *
- * The largest period is during cranking @30RPM but we need to 
- * remember that there are missing tooth hence X3
- * 	1/(@30 RPM / 60) / 36 => 13888uSec
+ * The largest period is during cranking but we are limited to USHRT_MAX
+ * and so if we account for the missing tooth ( x3 ) we have a minimum
+ * RPM of around 80 RPM which should be enough.
+ * 	1/(@80 RPM / 60) / 36 => X3 62500uSec
  *
  * The average period to declare the engine running is @500RPM
  * 	1/(@500 RPM / 60) / 36 => 3333uSec
@@ -62,7 +63,7 @@
  * NOTE that everything is contained in an unsigned short
  */
 #define MIN_TICK_PERIOD_USEC_6000RPM (277)
-#define MAX_TICK_PERIOD_USEC_30RPM (3*13888UL)
+#define MAX_TICK_PERIOD_USEC_80RPM (62500UL)
 #define AVERAGE_RUN_PERIOD (3333UL)
 
 #define MIN_SAMPLE 10 /* Debouncing Number of pulse */
@@ -123,7 +124,7 @@ unsigned char run_trigger_wheel(unsigned short t)
 		FORCE_PRINT("%d:%ld\n", t, trigger_wheel_get_average());
 
 	/* Account for the missing tooth */
-	if (t > MAX_TICK_PERIOD_USEC_30RPM || t < MIN_TICK_PERIOD_USEC_6000RPM){
+	if (t > MAX_TICK_PERIOD_USEC_80RPM || t < MIN_TICK_PERIOD_USEC_6000RPM){
 		/* Losing the SYNC at run-time is no good */
 		if(state == 4){ /* Losing SYNC at run-time is no good */
 			FORCE_PRINT("Glitch %d:%d\n", t, state);
