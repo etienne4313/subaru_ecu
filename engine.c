@@ -15,12 +15,23 @@
 #include <ecu.h>
 
 /*
+ * 4 Stroke Engine ( $$$$ Dwell, ^^^^ Ignition, #### Fuel )
+ *
+ * 	5msec Dwell: @1000RPM=30deg; @2000RPM=60deg; @4000RPM=120deg
+ *
+ *           40 BTDC      0 TDC            180 BDC           360 TDC           540 BDC
+ *            ||-----------||-----Power-----||-----Exhaust----||---Admission----||---Compression---
+ *  $$$$$$$$$$$$
+ *              ^^^^^^^^^^^
+ *                           #################################
+ *
  * The firing order determine the TDC sequence
  *  EX 1-3-2-4 => TDC1    TDC3    TDC2    TDC4
  *                0deg    180deg  360deg  540deg
  *
- * TDC can be either Power stroke OR Intake stroke
- * Without CAM signal, we need Wasted Spark bcos TDC1 can be either 0deg OR 360deg
+ * Over 360deg, TDC can be either Power OR Intake stroke and without the CAM
+ * signal we don't know which phase we are in since TDC1 Power stroke can be
+ * either 0deg (***) OR 360deg (!!!) as per picture below.
  *
  *        0 deg            180 deg           360 deg           540 deg           720 deg
  * ---------||---------------||----------------||----------------||--------------||
@@ -38,6 +49,16 @@
  * CYL4:                     TDC!!!                              TDC***
  *                           Intake-->                           Power-->
  *
+ * For that reason the ignition mode is initially set to wasted spark i.e. fire
+ * during the Power stroke and the Exhaust stroke of a given pair of cylinders.
+ *
+ * Below the function trim_to_sequential() dynamically discover the phase of the
+ * engine by guessing the ignition phase and noting down if its the right guess
+ * OR not by monitoring any drop in the RPM.
+ *
+ * For Intake we don't care much bcos the fuel can sit on the valve for some time
+ * either the Intake valve opens right away or in another 360 deg. So for that
+ * reason we pick a default phase for the fuel and adjust it later in trim_to_sequential()
  */
 static struct engine_schedule four_stroke[4] = {
 	{ .degree = 0,   .coil_cyl = CYL12, .fuel_cyl = CYL1 },
@@ -49,14 +70,6 @@ static struct engine_schedule four_stroke[4] = {
 /******************************************************************************/
 /* ENGINE TRIM */
 /******************************************************************************/
-/*
- * Without CAM signal we don't know if TDC1 is at 0deg OR at 360deg
- * For Intake we don't care much bcos the fuel can sit on the valve for some time
- * either the Intake valve opens right away or in another 360 deg.
-
- * For ignition, the spark cannot wait so we need to double up ( Wasted spark )
- * Here we dynamically determine the right phase by going into full sequential ignition
- */
 static void tdc1_0deg(void)
 {
 	struct engine_schedule *sched;
@@ -182,31 +195,31 @@ static void btdc_140(struct event *e)
 	OS_CPU_SR cpu_sr;
 	struct engine_schedule *sched = &four_stroke[(int)e->cookie];
 
-	if(!timing_advance_enabled)
-		return;
+	/* Dwell starts now;
+	 * Max timing advance is 30deg => 110deg from here
+	 * Coils needs 5msec Dwell time so cannot reach 4000RPM
+	 * 	@1000RPM=30deg; @2000RPM=60deg; @4000RPM=120deg
+	 */
+	io_open_coil(sched->coil_cyl, get_monotonic_time());
 
-	/* Here we project how much time it takes to reach to timing advance point based on the current speed */
-	time = deg_to_usec(140 - timing_advance);
-	OS_ENTER_CRITICAL();
-	schedule_work_absolute(io_open_coil, sched->coil_cyl, curr_time + time - 5000UL); /* DWELL Schedule */
-	schedule_work_absolute(io_close_coil, sched->coil_cyl, curr_time + time); /* Ignition schedule */
-	OS_EXIT_CRITICAL();
-	DEBUG("ADVANCE %d: %d \n",sched->coil_cyl, e->deg);
+	if(timing_advance_enabled && timing_advance != 0){
+		/* Here we project how much time it takes to reach to timing advance point based on the current speed */
+		time = deg_to_usec(140 - timing_advance);
+		OS_ENTER_CRITICAL();
+		schedule_work_absolute(io_close_coil, sched->coil_cyl, curr_time + time); /* Ignition schedule */
+		OS_EXIT_CRITICAL();
+	}
 }
 
-
 /******************************************************************************/
-/* BTDC 40 CYL 1 2 3 4 */
+/* BTDC 10 CYL 1 2 3 4 */
 /******************************************************************************/
-static void btdc_40(struct event *e)
+static void btdc_10(struct event *e)
 {
 	struct engine_schedule *sched = &four_stroke[(int)e->cookie];
 
-	if(!timing_advance_enabled){ /* Without timing advance we DWELL the coil here; 11msec @ 600RPM */
-		io_open_coil(sched->coil_cyl, get_monotonic_time());
-		DEBUG("SAFE DWELL %d: %d \n",sched->coil_cyl, e->deg);
-		return;
-	}
+	if(timing_advance_enabled && timing_advance == 0) /* Default when timing advance is enabled */
+		io_close_coil(sched->coil_cyl, get_monotonic_time());
 }
 
 /******************************************************************************/
@@ -217,16 +230,13 @@ static void btdc_0(struct event *e)
 	OS_CPU_SR cpu_sr;
 	struct engine_schedule *sched = &four_stroke[(int)e->cookie];
 
-	if(!timing_advance_enabled){ /* Without timing advance we force a ignition here */
-		io_close_coil(sched->coil_cyl, get_monotonic_time());
-		DEBUG("SAFE FIRE %d: %d \n",sched->coil_cyl, e->deg);
-	}
+	/* Always close the coil here */
+	io_close_coil(sched->coil_cyl, get_monotonic_time());
 
 	OS_ENTER_CRITICAL();
 	io_open_injector(sched->fuel_cyl); /* Now */
 	schedule_work_absolute(io_close_injector, sched->fuel_cyl,  get_monotonic_time() + (USEC_PER_MSEC * fuel_msec)); /* FUEL schedule */
 	OS_EXIT_CRITICAL();
-	DEBUG("FUEL %d: %d \n",sched->fuel_cyl, e->deg);
 
 	if( (e->cookie == 0) && trim_flag ){ /* Trim only from CYL1 */
 		trim_to_sequential();
@@ -247,7 +257,7 @@ void engine_thread(void *p)
 
 	for(x=0; x<4; x++){
 		event_register(normalize_deg(four_stroke[x].degree - 140), btdc_140, x);
-		event_register(normalize_deg(four_stroke[x].degree - 40), btdc_40, x);
+		event_register(normalize_deg(four_stroke[x].degree - 10), btdc_10, x);
 		event_register(normalize_deg(four_stroke[x].degree - 0), btdc_0, x);
 	}
 
@@ -264,7 +274,6 @@ void engine_thread(void *p)
 		 * Wait for the trigger wheel notification
 		 * When the engine has started running wait on the semaphore with a timeout so that we can 
 		 * catch the scenario where the engine stops
-		 * Also check if the engine state goes out of ENGINE_RUN
 		 */
 		if(engine_state == ENGINE_RUN || init == 1){
 			OSSemPend(engine_event, 100, &err);

@@ -70,7 +70,7 @@ static void user_cmd(int *timing_advance, int *fuel_msec)
 		}
 		break;
 	case '=':
-		if(*timing_advance < 40)
+		if(*timing_advance < 30)
 			(*timing_advance)++;
 		FORCE_PRINT("T %d\n",*timing_advance);
 		break;
