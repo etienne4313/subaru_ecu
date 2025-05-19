@@ -22,7 +22,6 @@
 //#define __UNIT_TEST__ /* Basic IO test */
 
 #include <ucos_ii.h>
-#include <limits.h>
 
 /******************************************************************************/
 /* RTOS */

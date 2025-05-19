@@ -2,7 +2,7 @@
 # Architecture:
 #
 PLATFORM=x86
-KDIR := $(UCOS_II)/Ports/X86/userspace/gcc/
+KDIR := $(UCOS_II)/Ports/X86/user/gcc/
 
 #
 # CPU:

@@ -2,7 +2,7 @@
 # Architecture:
 #
 PLATFORM=arm
-KDIR := $(UCOS_II)/Ports/RaspberryPI/userspace/gcc/
+KDIR := $(UCOS_II)/Ports/ARM/user/gcc/
 
 #
 # CPU:
