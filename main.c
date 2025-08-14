@@ -253,8 +253,6 @@ int main(void)
 
 	engine_event = OSSemCreate(0);
 	
-	timer_init();
-
 	/* IRQ are disabled up to this point where we run start the first thread */
 	OSStart();
 
