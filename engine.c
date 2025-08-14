@@ -275,6 +275,8 @@ void engine_thread(void *p)
 		 * When the engine has started running wait on the semaphore with a timeout so that we can 
 		 * catch the scenario where the engine stops
 		 */
+		// Might be just better to always doing sem timeout and DIE if the engine crashed
+		// MAy have another STATE ?
 		if(engine_state == ENGINE_RUN || init == 1){
 			OSSemPend(engine_event, 100, &err);
 			if(err == OS_ERR_TIMEOUT){

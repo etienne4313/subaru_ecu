@@ -196,13 +196,11 @@ void io_relay_on(void)
 /******************************************************************************/
 void starter_off(void)
 {
-	FORCE_PRINT("STARTER OFF\n");
 	STARTER_OFF();
 }
 
 void starter_on(void)
 {
-	FORCE_PRINT("STARTER ON\n");
 	STARTER_ON();
 }
 
