@@ -7,7 +7,10 @@ PROG := $(PWD)/$(shell basename `pwd`)
 #
 # Project files
 #
-DRIVER = subaru_36_2_2_2
+DRIVER ?= subaru_36_2_2_2
+
+# To build for Hyundai Elantra 1.8L 60-2, run:
+#   make DRIVER=hyundai_60_2
 INCLUDE = $(PWD)
 
 # 
