@@ -22,6 +22,9 @@
 //#define __UNIT_TEST__ /* Basic IO test */
 
 #include <ucos_ii.h>
+#if (PLATFORM==x86)
+#include "io_x86.h"
+#endif
 
 /******************************************************************************/
 /* RTOS */
